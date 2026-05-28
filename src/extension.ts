@@ -3,9 +3,18 @@ import { loadStorage, saveStorage, removeEntry } from './storage';
 import { toggleAndPersist, restoreOnActiveEditor, forgetWrap } from './wrapHandler';
 import { handleOpen, handleClose, processAlreadyOpenDocs } from './languageHandler';
 import { handleRename } from './renameHandler';
+import { pruneOldEntries } from './cleanup';
 
 export function activate(ctx: vscode.ExtensionContext): void {
-  void processAlreadyOpenDocs(ctx.globalState);
+  void (async () => {
+    await processAlreadyOpenDocs(ctx.globalState);
+    const days = vscode.workspace
+      .getConfiguration('persistFileSettings')
+      .get<number>('cleanupAfterDays', 14);
+    const before = loadStorage(ctx.globalState);
+    const after = pruneOldEntries(before, Date.now(), days);
+    if (after !== before) await saveStorage(ctx.globalState, after);
+  })();
 
   ctx.subscriptions.push(
     vscode.commands.registerCommand('persistFileSettings.toggleWordWrap', () =>
