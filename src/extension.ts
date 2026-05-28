@@ -1,8 +1,11 @@
 import * as vscode from 'vscode';
 import { loadStorage, saveStorage, removeEntry } from './storage';
 import { toggleAndPersist, restoreOnActiveEditor, forgetWrap } from './wrapHandler';
+import { handleOpen, handleClose, processAlreadyOpenDocs } from './languageHandler';
 
 export function activate(ctx: vscode.ExtensionContext): void {
+  void processAlreadyOpenDocs(ctx.globalState);
+
   ctx.subscriptions.push(
     vscode.commands.registerCommand('persistFileSettings.toggleWordWrap', () =>
       toggleAndPersist(ctx.globalState),
@@ -27,12 +30,15 @@ export function activate(ctx: vscode.ExtensionContext): void {
       vscode.window.showInformationMessage('Cleared all persisted per-file settings.');
     }),
 
+    vscode.workspace.onDidOpenTextDocument((doc) => void handleOpen(ctx.globalState, doc)),
+
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (editor) void restoreOnActiveEditor(ctx.globalState, editor);
     }),
 
     vscode.workspace.onDidCloseTextDocument((doc) => {
-      forgetWrap(doc.uri.toString());
+      const result = handleClose(doc);
+      if (result.kind === 'realClose') forgetWrap(result.key);
     }),
   );
 
