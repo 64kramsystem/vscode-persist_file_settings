@@ -40,10 +40,3 @@ export function removeEntry(s: Storage, key: string): Storage {
   const { [key]: _removed, ...rest } = s;
   return rest;
 }
-
-export function migrateKey(s: Storage, oldKey: string, newKey: string): Storage {
-  const entry = s[oldKey];
-  if (!entry) return s;
-  const { [oldKey]: _removed, ...rest } = s;
-  return { ...rest, [newKey]: entry };
-}

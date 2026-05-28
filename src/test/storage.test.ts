@@ -3,7 +3,6 @@ import { strict as assert } from 'node:assert';
 import {
   patchEntry,
   removeEntry,
-  migrateKey,
   type Storage,
 } from '../storage';
 
@@ -42,32 +41,5 @@ test('removeEntry drops the key', () => {
 test('removeEntry is a no-op for missing key', () => {
   const start: Storage = { 'file:///a.txt': { lastOpenedAt: 1 } };
   const out = removeEntry(start, 'file:///missing.txt');
-  assert.deepEqual(out, start);
-});
-
-test('migrateKey moves entry to new key', () => {
-  const start: Storage = {
-    'file:///old.txt': { languageId: 'rust', lastOpenedAt: 1 },
-  };
-  const out = migrateKey(start, 'file:///old.txt', 'file:///new.txt');
-  assert.deepEqual(out, {
-    'file:///new.txt': { languageId: 'rust', lastOpenedAt: 1 },
-  });
-});
-
-test('migrateKey overwrites the target key', () => {
-  const start: Storage = {
-    'file:///old.txt': { languageId: 'rust', lastOpenedAt: 1 },
-    'file:///new.txt': { languageId: 'go', lastOpenedAt: 2 },
-  };
-  const out = migrateKey(start, 'file:///old.txt', 'file:///new.txt');
-  assert.deepEqual(out, {
-    'file:///new.txt': { languageId: 'rust', lastOpenedAt: 1 },
-  });
-});
-
-test('migrateKey is a no-op if oldKey is absent', () => {
-  const start: Storage = { 'file:///x.txt': { lastOpenedAt: 1 } };
-  const out = migrateKey(start, 'file:///old.txt', 'file:///new.txt');
   assert.deepEqual(out, start);
 });

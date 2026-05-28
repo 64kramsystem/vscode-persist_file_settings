@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { loadStorage, saveStorage, removeEntry } from './storage';
 import { toggleAndPersist, restoreOnActiveEditor, forgetWrap } from './wrapHandler';
 import { handleOpen, handleClose, processAlreadyOpenDocs } from './languageHandler';
+import { handleRename } from './renameHandler';
 
 export function activate(ctx: vscode.ExtensionContext): void {
   void processAlreadyOpenDocs(ctx.globalState);
@@ -40,6 +41,8 @@ export function activate(ctx: vscode.ExtensionContext): void {
       const result = handleClose(doc);
       if (result.kind === 'realClose') forgetWrap(result.key);
     }),
+
+    vscode.workspace.onDidRenameFiles((e) => void handleRename(ctx.globalState, e)),
   );
 
   if (vscode.window.activeTextEditor) {
