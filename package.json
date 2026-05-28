@@ -2,9 +2,18 @@
   "name": "persist-file-settings",
   "displayName": "Persist Per-File Settings",
   "description": "Remembers language mode and word wrap on a per-file basis and restores them when the file is reopened.",
+  "license": "MIT",
   "version": "0.0.1",
-  "publisher": "saverio",
+  "publisher": "64kramsystem",
   "engines": { "vscode": "^1.75.0" },
+  "categories": ["Other"],
+  "keywords": ["persist", "language", "word wrap", "settings", "per-file"],
+  "homepage": "https://github.com/64kramsystem/vscode-persist_file_settings",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/64kramsystem/vscode-persist_file_settings.git"
+  },
+  "bugs": "https://github.com/64kramsystem/vscode-persist_file_settings/issues",
   "main": "./out/extension.js",
   "activationEvents": ["onStartupFinished"],
   "contributes": {
