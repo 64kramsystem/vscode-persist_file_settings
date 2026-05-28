@@ -6,9 +6,15 @@ import {
   type WrapState,
   type MementoLike,
 } from './storage';
-import { docKey, isPersistable, defaultWrapForDoc } from './util';
+import { docKey, isPersistable } from './util';
 
 const editorWrapState = new Map<string, WrapState>();
+
+function defaultWrapForDoc(doc: vscode.TextDocument): WrapState {
+  const cfg = vscode.workspace.getConfiguration('editor', doc);
+  const val = cfg.get<string>('wordWrap', 'off');
+  return val === 'off' ? 'off' : 'on';
+}
 
 function flip(s: WrapState): WrapState {
   return s === 'on' ? 'off' : 'on';
