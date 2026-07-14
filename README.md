@@ -87,3 +87,4 @@ After installing the .vsix and reloading VS Code:
   Behavior above).
 - **Cross-machine sync** is not supported (`globalState` is local-only by
   design).
+- **Concurrent windows can lose an update**: all files share one `globalState` key and each window caches its own copy, so a write from one window can overwrite an entry another window changed at the same moment. It is self-healing — the next toggle, language change, or close rewrites the affected entry — and rare outside heavy multi-window use.
