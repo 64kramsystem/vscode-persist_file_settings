@@ -18,13 +18,19 @@
   "activationEvents": ["onStartupFinished"],
   "contributes": {
     "commands": [
-      { "command": "persistFileSettings.toggleWordWrap", "title": "Persist File Settings: Toggle Word Wrap" },
+      { "command": "persistFileSettings.setWordWrap", "title": "Persist File Settings: Toggle Word Wrap" },
       { "command": "persistFileSettings.clearForFile", "title": "Persist File Settings: Clear for This File" },
       { "command": "persistFileSettings.clearAll", "title": "Persist File Settings: Clear All Entries" }
     ],
     "keybindings": [
-      { "command": "persistFileSettings.toggleWordWrap", "key": "alt+w", "when": "editorTextFocus" }
+      { "command": "persistFileSettings.setWordWrap", "key": "alt+w", "when": "editorTextFocus && canToggleWordWrap && !editorWordWrap", "args": "on" },
+      { "command": "persistFileSettings.setWordWrap", "key": "alt+w", "when": "editorTextFocus && canToggleWordWrap && editorWordWrap", "args": "off" }
     ],
+    "menus": {
+      "commandPalette": [
+        { "command": "persistFileSettings.setWordWrap", "when": "false" }
+      ]
+    },
     "configuration": {
       "title": "Persist Per-File Settings",
       "properties": {

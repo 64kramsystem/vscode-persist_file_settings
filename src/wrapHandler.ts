@@ -8,31 +8,28 @@ import {
 } from './storage';
 import { docKey, isPersistable } from './util';
 
-const editorWrapState = new Map<string, WrapState>();
+// Documents whose wrap state has already been reconciled this session. VS Code stores wrap as an
+// in-memory transient model property that resets when a document is closed and reopened, so a
+// document we have not yet touched is guaranteed to be at its configured default.
+const synced = new Set<string>();
 
 function defaultWrapForDoc(doc: vscode.TextDocument): WrapState {
-  const cfg = vscode.workspace.getConfiguration('editor', doc);
-  const val = cfg.get<string>('wordWrap', 'off');
+  const val = vscode.workspace.getConfiguration('editor', doc).get<string>('wordWrap', 'off');
   return val === 'off' ? 'off' : 'on';
 }
 
-function flip(s: WrapState): WrapState {
-  return s === 'on' ? 'off' : 'on';
-}
-
-export async function toggleAndPersist(memento: MementoLike): Promise<void> {
+// Bound to Alt+W by two keybindings that route on the `editorWordWrap` context key and pass the
+// resulting state as `target`. Because the routing reflects VS Code's real wrap state, `target` is
+// authoritative regardless of how wrap was last toggled (including the built-in Alt+Z).
+export async function setWordWrap(memento: MementoLike, target: WrapState): Promise<void> {
   const editor = vscode.window.activeTextEditor;
   if (!editor) return;
   await vscode.commands.executeCommand('editor.action.toggleWordWrap');
-
   const doc = editor.document;
   if (!isPersistable(doc)) return;
   const key = docKey(doc);
-  const before = editorWrapState.get(key) ?? defaultWrapForDoc(doc);
-  const after = flip(before);
-  editorWrapState.set(key, after);
-  const next = patchEntry(loadStorage(memento), key, { wordWrap: after }, Date.now());
-  await saveStorage(memento, next);
+  synced.add(key);
+  await saveStorage(memento, patchEntry(loadStorage(memento), key, { wordWrap: target }, Date.now()));
 }
 
 export async function restoreOnActiveEditor(
@@ -42,16 +39,14 @@ export async function restoreOnActiveEditor(
   const doc = editor.document;
   if (!isPersistable(doc)) return;
   const key = docKey(doc);
+  if (synced.has(key)) return;
+  synced.add(key);
   const stored = loadStorage(memento)[key];
-  if (!stored?.wordWrap) return;
-
-  const current = editorWrapState.get(key) ?? defaultWrapForDoc(doc);
-  if (current !== stored.wordWrap) {
+  if (stored?.wordWrap && stored.wordWrap !== defaultWrapForDoc(doc)) {
     await vscode.commands.executeCommand('editor.action.toggleWordWrap');
   }
-  editorWrapState.set(key, stored.wordWrap);
 }
 
 export function forgetWrap(key: string): void {
-  editorWrapState.delete(key);
+  synced.delete(key);
 }

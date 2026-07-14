@@ -1,14 +1,14 @@
 import * as vscode from 'vscode';
 import { loadStorage, saveStorage, removeEntry } from './storage';
-import { toggleAndPersist, restoreOnActiveEditor, forgetWrap } from './wrapHandler';
+import { setWordWrap, restoreOnActiveEditor, forgetWrap } from './wrapHandler';
 import { handleOpen, handleClose, processAlreadyOpenDocs } from './languageHandler';
 import { handleRename } from './renameHandler';
 import { pruneOldEntries } from './cleanup';
 
 export function activate(ctx: vscode.ExtensionContext): void {
   ctx.subscriptions.push(
-    vscode.commands.registerCommand('persistFileSettings.toggleWordWrap', () =>
-      toggleAndPersist(ctx.globalState),
+    vscode.commands.registerCommand('persistFileSettings.setWordWrap', (target: 'on' | 'off') =>
+      setWordWrap(ctx.globalState, target),
     ),
 
     vscode.commands.registerCommand('persistFileSettings.clearForFile', async () => {
