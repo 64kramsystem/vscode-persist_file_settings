@@ -6,16 +6,6 @@ import { handleRename } from './renameHandler';
 import { pruneOldEntries } from './cleanup';
 
 export function activate(ctx: vscode.ExtensionContext): void {
-  void (async () => {
-    await processAlreadyOpenDocs(ctx.globalState);
-    const days = vscode.workspace
-      .getConfiguration('persistFileSettings')
-      .get<number>('cleanupAfterDays', 14);
-    const before = loadStorage(ctx.globalState);
-    const after = pruneOldEntries(before, Date.now(), days);
-    if (after !== before) await saveStorage(ctx.globalState, after);
-  })();
-
   ctx.subscriptions.push(
     vscode.commands.registerCommand('persistFileSettings.toggleWordWrap', () =>
       toggleAndPersist(ctx.globalState),
@@ -48,11 +38,21 @@ export function activate(ctx: vscode.ExtensionContext): void {
 
     vscode.workspace.onDidCloseTextDocument((doc) => {
       const result = handleClose(doc);
-      if (result.kind === 'realClose') forgetWrap(result.key);
+      if (result?.realClose) forgetWrap(result.key);
     }),
 
     vscode.workspace.onDidRenameFiles((e) => void handleRename(ctx.globalState, e)),
   );
+
+  void (async () => {
+    await processAlreadyOpenDocs(ctx.globalState);
+    const days = vscode.workspace
+      .getConfiguration('persistFileSettings')
+      .get<number>('cleanupAfterDays', 14);
+    const before = loadStorage(ctx.globalState);
+    const after = pruneOldEntries(before, Date.now(), days);
+    if (after !== before) await saveStorage(ctx.globalState, after);
+  })();
 
   if (vscode.window.activeTextEditor) {
     void restoreOnActiveEditor(ctx.globalState, vscode.window.activeTextEditor);

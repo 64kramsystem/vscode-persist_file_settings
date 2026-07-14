@@ -1,52 +1,62 @@
 import * as vscode from 'vscode';
-import {
-  loadStorage,
-  patchEntry,
-  saveStorage,
-  type MementoLike,
-} from './storage';
+import { loadStorage, patchEntry, saveStorage, type MementoLike } from './storage';
 import { docKey, isPersistable } from './util';
-import { pendingLanguageChange, restoringLanguage } from './languageDispatch';
+import {
+  initialLangState,
+  reduceClose,
+  reduceOpen,
+  reduceRestoreFailed,
+  type LangState,
+} from './languageReducer';
 
-export { handleClose, type CloseResult } from './languageDispatch';
+// Imperative shell around the pure reducer: holds the state, loads/saves storage, and calls the
+// VS Code APIs the reducer's decisions describe.
+let langState: LangState = initialLangState;
 
-export async function handleOpen(
-  memento: MementoLike,
-  doc: vscode.TextDocument,
-): Promise<void> {
+export interface CloseOutcome {
+  realClose: boolean;
+  key: string;
+}
+
+export function handleClose(doc: vscode.TextDocument): CloseOutcome | null {
+  if (!isPersistable(doc)) return null;
+  const key = docKey(doc);
+  const { state, realClose } = reduceClose(langState, {
+    key,
+    isClosed: doc.isClosed,
+    currentLanguageId: doc.languageId,
+  });
+  langState = state;
+  return { realClose, key };
+}
+
+export async function handleOpen(memento: MementoLike, doc: vscode.TextDocument): Promise<void> {
   if (!isPersistable(doc)) return;
   const key = docKey(doc);
-  const previousLanguageId = pendingLanguageChange.get(key);
-  pendingLanguageChange.delete(key);
-
-  if (previousLanguageId !== undefined) {
-    const restoreTarget = restoringLanguage.get(key);
-    restoringLanguage.delete(key);
-    if (restoreTarget === doc.languageId) return;
-    if (previousLanguageId !== doc.languageId) {
-      await saveStorage(
-        memento,
-        patchEntry(loadStorage(memento), key, { languageId: doc.languageId }, Date.now()),
-      );
-    }
-    return;
-  }
-
-  let storage = loadStorage(memento);
-  if (storage[key]) {
-    storage = patchEntry(storage, key, {}, Date.now());
-    await saveStorage(memento, storage);
-  }
-
+  const storage = loadStorage(memento);
   const stored = storage[key];
-  if (stored?.languageId && stored.languageId !== doc.languageId) {
-    restoringLanguage.set(key, stored.languageId);
+  const { state, touch, decision } = reduceOpen(langState, {
+    key,
+    currentLanguageId: doc.languageId,
+    storedLanguageId: stored?.languageId,
+    storedExists: stored !== undefined,
+  });
+  langState = state;
+
+  if (touch) {
+    await saveStorage(memento, patchEntry(storage, key, {}, Date.now()));
+  }
+
+  if (decision.kind === 'persist') {
+    await saveStorage(
+      memento,
+      patchEntry(loadStorage(memento), key, { languageId: decision.languageId }, Date.now()),
+    );
+  } else if (decision.kind === 'restore') {
     try {
-      await vscode.languages.setTextDocumentLanguage(doc, stored.languageId);
+      await vscode.languages.setTextDocumentLanguage(doc, decision.languageId);
     } catch {
-      if (restoringLanguage.get(key) === stored.languageId) {
-        restoringLanguage.delete(key);
-      }
+      langState = reduceRestoreFailed(langState, key, decision.languageId);
     }
   }
 }
