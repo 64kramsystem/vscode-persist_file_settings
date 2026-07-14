@@ -53,7 +53,7 @@ across machines.
 npm install
 npm run compile
 npx vsce package
-code --install-extension persist-file-settings-0.0.1.vsix
+code --install-extension persist-file-settings-0.1.0.vsix
 ```
 
 ## Manual smoke test

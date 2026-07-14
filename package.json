@@ -3,7 +3,7 @@
   "displayName": "Persist Per-File Settings",
   "description": "Remembers language mode and word wrap on a per-file basis and restores them when the file is reopened.",
   "license": "MIT",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publisher": "64kramsystem",
   "engines": { "vscode": "^1.75.0" },
   "categories": ["Other"],
